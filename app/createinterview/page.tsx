@@ -155,7 +155,7 @@ export default function CreateInterviewPage() {
 
       const data = await response.json()
       console.log("Success response:", data) // Debug log
-      router.push(`/interview/${data.id}`)
+      router.push(`/interviews/${data.id}`)
     } catch (err) {
       console.error('Creation error:', err)
       setError(err instanceof Error ? err.message : 'Failed to create interview template')
