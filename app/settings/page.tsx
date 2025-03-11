@@ -1,3 +1,7 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useUserStore } from "@/store/useUserStore"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -7,9 +11,113 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { CreditCard, Download, Trash2, Upload } from "lucide-react"
+import { CreditCard, Download, Trash2, Upload, Loader2 } from "lucide-react"
+
+// Constants for dropdown options
+const INDUSTRY_OPTIONS = [
+  { value: "Technology", label: "Technology" },
+  { value: "Finance", label: "Finance" },
+  { value: "Healthcare", label: "Healthcare" },
+  { value: "Education", label: "Education" },
+  { value: "Manufacturing", label: "Manufacturing" },
+  { value: "Retail", label: "Retail" },
+  { value: "Consulting", label: "Consulting" },
+  { value: "Other", label: "Other" },
+]
+
+const JOB_ROLE_OPTIONS = [
+  { value: "Software Engineer", label: "Software Engineer" },
+  { value: "Data Scientist", label: "Data Scientist" },
+  { value: "Product Manager", label: "Product Manager" },
+  { value: "UX Designer", label: "UX Designer" },
+  { value: "Business Analyst", label: "Business Analyst" },
+  { value: "Project Manager", label: "Project Manager" },
+  { value: "DevOps Engineer", label: "DevOps Engineer" },
+  { value: "Other", label: "Other" },
+]
+
+const TIMEZONE_OPTIONS = [
+  { value: "UTC", label: "UTC" },
+  { value: "IST", label: "IST (UTC+5:30)" },
+  { value: "EST", label: "EST (UTC-5)" },
+  { value: "PST", label: "PST (UTC-8)" },
+  { value: "GMT", label: "GMT (UTC+0)" },
+  { value: "JST", label: "JST (UTC+9)" },
+]
 
 export default function SettingsPage() {
+  const { user, accessToken, setUser } = useUserStore()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [formData, setFormData] = useState({
+    phone_number: "",
+    experience_level: "mid",
+    industry: "",
+    job_role: "",
+    timezone: "UTC"
+  })
+
+  // Handle hydration
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        phone_number: user.phone_number || "",
+        experience_level: user.experience_level || "mid",
+        industry: user.industry || "",
+        job_role: user.job_role || "",
+        timezone: user.timezone || "UTC"
+      })
+    }
+    setIsHydrated(true)
+  }, [user])
+
+  // Don't render until hydrated
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  const handleChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/profile/profile/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile')
+      }
+
+      const updatedProfile = await response.json()
+      setUser({ ...user, ...updatedProfile })
+      // Show success message or toast here
+    } catch (err) {
+      console.error('Update error:', err)
+      setError('Failed to update profile')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="flex flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
@@ -29,86 +137,115 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your profile information to personalize your experience</CardDescription>
+                <CardDescription>Update your profile information</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" placeholder="John Doe" />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="john@example.com" />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea id="bio" placeholder="Tell us a bit about yourself" />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Career Information</h3>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="current-role">Current Role</Label>
-                    <Input id="current-role" placeholder="Frontend Developer" />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="experience">Years of Experience</Label>
-                    <Select>
-                      <SelectTrigger id="experience">
-                        <SelectValue placeholder="Select years of experience" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0-1">0-1 years</SelectItem>
-                        <SelectItem value="1-3">1-3 years</SelectItem>
-                        <SelectItem value="3-5">3-5 years</SelectItem>
-                        <SelectItem value="5-10">5-10 years</SelectItem>
-                        <SelectItem value="10+">10+ years</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="target-role">Target Role</Label>
-                    <Input id="target-role" placeholder="Senior Frontend Developer" />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="skills">Key Skills</Label>
-                    <Textarea id="skills" placeholder="React, JavaScript, CSS, Next.js, etc." />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Resume/CV</h3>
-
-                  <div className="grid gap-2">
-                    <Label>Upload Resume</Label>
-                    <div className="flex items-center gap-4">
-                      <Button variant="outline" className="w-full">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload Resume
-                      </Button>
-                      <Button variant="outline" className="w-full">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Current
-                      </Button>
+              <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-6">
+                  {error && (
+                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                      {error}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Supported formats: PDF, DOCX, RTF (Max size: 5MB)
-                    </p>
+                  )}
+                  
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone_number">Phone Number</Label>
+                      <Input
+                        id="phone_number"
+                        value={formData.phone_number}
+                        onChange={(e) => handleChange('phone_number', e.target.value)}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="experience_level">Experience Level</Label>
+                      <Select 
+                        value={formData.experience_level}
+                        onValueChange={(value) => handleChange('experience_level', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select experience level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="junior">Junior</SelectItem>
+                          <SelectItem value="mid">Mid-Level</SelectItem>
+                          <SelectItem value="senior">Senior</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="industry">Industry</Label>
+                      <Select 
+                        value={formData.industry}
+                        onValueChange={(value) => handleChange('industry', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INDUSTRY_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="job_role">Job Role</Label>
+                      <Select 
+                        value={formData.job_role}
+                        onValueChange={(value) => handleChange('job_role', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select job role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {JOB_ROLE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="timezone">Timezone</Label>
+                      <Select 
+                        value={formData.timezone}
+                        onValueChange={(value) => handleChange('timezone', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIMEZONE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline">Cancel</Button>
-                <Button>Save Changes</Button>
-              </CardFooter>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
             </Card>
           </TabsContent>
 

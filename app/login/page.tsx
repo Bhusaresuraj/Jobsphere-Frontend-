@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BrainCircuit, Github, Loader2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { setAuthData } from '@/utils/auth'
+import { useUserStore } from '@/store/useUserStore'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -19,23 +21,41 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const { setUser, setTokens } = useUserStore()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Demo credentials check
-      if (email === "demo@jobsphere.com" && password === "password123") {
-        // Navigate to dashboard which will trigger the isLoggedIn state in MainNav
-        router.push("/dashboard")
-      } else {
-        setError("Invalid email or password. Try demo@jobsphere.com / password123")
+    try {
+      const loginData = {
+        email,
+        password,
       }
-    }, 1500)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'omit',
+        body: JSON.stringify(loginData),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+        setTokens(data.access, data.refresh)
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('Invalid email or password')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleDemoLogin = () => {

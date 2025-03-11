@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -17,8 +17,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { useUserStore } from '@/store/useUserStore'
 
 export function MainNav() {
+  const router = useRouter()
+  const { user, clearUser } = useUserStore()
   const pathname = usePathname()
   const [isLoggedIn, setIsLoggedIn] = React.useState(false)
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
@@ -73,6 +76,11 @@ export function MainNav() {
 
   const displayedRoutes = isLoggedIn ? authenticatedRoutes : routes
 
+  const handleSignOut = () => {
+    clearUser()
+    router.push('/')
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -105,7 +113,9 @@ export function MainNav() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="h-9 gap-1 px-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarFallback>U</AvatarFallback>
+                        <AvatarFallback>
+                          {user?.username.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
                       </Avatar>
                       <span className="ml-1">Account</span>
                     </Button>
@@ -113,8 +123,8 @@ export function MainNav() {
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-0.5">
-                        <p className="text-sm font-medium">Demo User</p>
-                        <p className="text-xs text-muted-foreground">demo@jobsphere.com</p>
+                        <p className="text-sm font-medium">{user?.username || 'User'}</p>
+                        <p className="text-xs text-muted-foreground">{user?.email}</p>
                       </div>
                     </div>
                     <DropdownMenuSeparator />
@@ -131,11 +141,12 @@ export function MainNav() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/" className="cursor-pointer flex items-center text-destructive">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Sign Out</span>
-                      </Link>
+                    <DropdownMenuItem 
+                      onClick={handleSignOut}
+                      className="cursor-pointer flex items-center text-destructive"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sign Out</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -174,11 +185,13 @@ export function MainNav() {
                   <div className="mb-4">
                     <div className="flex items-center gap-3 mb-2 px-1">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback>U</AvatarFallback>
+                        <AvatarFallback>
+                          {user?.username.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">Demo User</p>
-                        <p className="text-sm text-muted-foreground">demo@jobsphere.com</p>
+                        <p className="font-medium">{user?.username || 'User'}</p>
+                        <p className="text-sm text-muted-foreground">{user?.email}</p>
                       </div>
                     </div>
                     <Separator className="my-4" />

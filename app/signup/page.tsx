@@ -18,14 +18,20 @@ export default function SignupPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    fullName: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
+    role: "candidate",
+    phone_number: "",
+    experience_level: "mid",
+    industry: "Tech",
+    job_role: "Software Engineer",
+    timezone: "UTC"
   })
   const [error, setError] = useState("")
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
@@ -37,7 +43,6 @@ export default function SignupPage() {
     e.preventDefault()
     setError("")
 
-    // Basic validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
       return
@@ -50,11 +55,45 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const signupData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        phone_number: formData.phone_number,
+        experience_level: formData.experience_level,
+        industry: formData.industry,
+        job_role: formData.job_role,
+        timezone: formData.timezone
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/signup/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'omit',
+        body: JSON.stringify(signupData),
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create account')
+      }
+      localStorage.setItem('accessToken', data.access)
+      localStorage.setItem('refreshToken', data.refresh)
+      localStorage.setItem('userData', JSON.stringify(data.user))
+
+      router.push('/dashboard')
+    } catch (err) {
+      console.error('Error details:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create account')
+    } finally {
       setIsLoading(false)
-      router.push("/dashboard")
-    }, 1500)
+    }
   }
 
   return (
@@ -105,51 +144,160 @@ export default function SignupPage() {
                 <CardContent>
                   <form onSubmit={handleSignup} className="space-y-4">
                     {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input
-                        id="fullName"
-                        name="fullName"
-                        placeholder="John Doe"
-                        value={formData.fullName}
-                        onChange={handleChange}
-                        required
-                      />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Column 1 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          name="username"
+                          placeholder="johndoe"
+                          value={formData.username}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+
+                      {/* Column 2 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={formData.email}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+
+                      {/* Column 1 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="phone_number">Phone Number</Label>
+                        <Input
+                          id="phone_number"
+                          name="phone_number"
+                          placeholder="1234567890"
+                          value={formData.phone_number}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+
+                      {/* Column 2 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Role</Label>
+                        <select
+                          id="role"
+                          name="role"
+                          value={formData.role}
+                          onChange={handleChange}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2"
+                          required
+                        >
+                          <option value="candidate">Candidate</option>
+                          <option value="recruiter">Recruiter</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+
+                      {/* Column 1 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="experience_level">Experience Level</Label>
+                        <select
+                          id="experience_level"
+                          name="experience_level"
+                          value={formData.experience_level}
+                          onChange={handleChange}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2"
+                          required
+                        >
+                          <option value="entry">Entry Level</option>
+                          <option value="mid">Mid Level</option>
+                          <option value="senior">Senior Level</option>
+                        </select>
+                      </div>
+
+                      {/* Column 2 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="industry">Industry</Label>
+                        <select
+                          id="industry"
+                          name="industry"
+                          value={formData.industry}
+                          onChange={handleChange}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2"
+                          required
+                        >
+                          <option value="Tech">Tech</option>
+                          <option value="Finance">Finance</option>
+                          <option value="Healthcare">Healthcare</option>
+                          <option value="Education">Education</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      {/* Column 1 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="job_role">Job Role</Label>
+                        <Input
+                          id="job_role"
+                          name="job_role"
+                          placeholder="Software Engineer"
+                          value={formData.job_role}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+
+                      {/* Column 2 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="timezone">Timezone</Label>
+                        <select
+                          id="timezone"
+                          name="timezone"
+                          value={formData.timezone}
+                          onChange={handleChange}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2"
+                          required
+                        >
+                          <option value="UTC">UTC</option>
+                          <option value="EST">EST</option>
+                          <option value="PST">PST</option>
+                          <option value="IST">IST</option>
+                        </select>
+                      </div>
+
+                      {/* Column 1 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          name="password"
+                          type="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+
+                      {/* Column 2 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type="password"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
+
+                    {/* Full width elements */}
                     <div className="flex items-center space-x-2">
                       <Checkbox id="terms" required />
                       <label
@@ -166,6 +314,7 @@ export default function SignupPage() {
                         </Link>
                       </label>
                     </div>
+
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? (
                         <>
