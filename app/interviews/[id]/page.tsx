@@ -20,6 +20,7 @@ import {
   Upload,
 } from "lucide-react"
 import { useUserStore } from "@/store/useUserStore"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Template {
   id: number
@@ -51,18 +52,22 @@ interface InterviewData {
   id: number // Added for session ID
 }
 
+interface QuestionAnalysis {
+  score: number
+  strengths: string[]
+  question_analysis: string
+  areas_for_improvement: string[]
+  relevance_to_question: string
+  question_alignment_score: number
+}
+
 interface AnalysisData {
+  analysis_data: {
+    [key: string]: QuestionAnalysis
+  }
   overall_score: number
   strengths: { [key: string]: string }
   weaknesses: { [key: string]: string }
-  analysis_data: {
-    [key: string]: {
-      clarity: number
-      confidence: number
-      technical_accuracy: number
-      improvement: string
-    }
-  }
 }
 
 export default function InterviewPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
@@ -87,6 +92,7 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
   const [interviewSessionId, setInterviewSessionId] = useState<number | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
 
   // Resolve paramsPromise
   useEffect(() => {
@@ -175,6 +181,7 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
 
   const submitRecordings = async () => {
     try {
+      setIsAnalysisLoading(true)
       if (!interviewSessionId) {
         throw new Error('No interview session ID found')
       }
@@ -205,6 +212,8 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
     } catch (err) {
       console.error('Error submitting recordings:', err)
       setError(err instanceof Error ? err.message : 'Failed to submit recordings')
+    } finally {
+      setIsAnalysisLoading(false)
     }
   }
 
@@ -214,6 +223,8 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
       setTimeRemaining(120)
       setIsPaused(true)
     } else {
+      setIsSubmitted(true)
+      setIsAnalysisLoading(true)
       submitRecordings()
     }
   }
@@ -285,6 +296,79 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
       console.error('Error fetching analysis:', err)
       setError('Failed to load interview analysis')
     }
+  }
+
+  const AnalysisSkeletonLoader = () => {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72 mt-2" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-6 w-16" />
+              </div>
+              <Skeleton className="h-2 w-full" />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-4/6" />
+                </div>
+              </div>
+
+              <div>
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-4/6" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Skeleton className="h-6 w-48 mb-4" />
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <Skeleton className="h-6 w-32" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Skeleton className="h-4 w-24 mb-2" />
+                            <Skeleton className="h-2 w-full" />
+                          </div>
+                          <div>
+                            <Skeleton className="h-4 w-24 mb-2" />
+                            <Skeleton className="h-2 w-full" />
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <Skeleton className="h-24 w-full" />
+                          <Skeleton className="h-24 w-full" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (!params || isLoading) {
@@ -391,6 +475,7 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
                         }
                       }} 
                       className="w-40"
+                      disabled={!isInterviewStarted}
                     >
                       {audioFiles[currentQuestion] ? (
                         <>
@@ -400,7 +485,7 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
                       ) : (
                         <>
                           <Upload className="mr-2 h-4 w-4" />
-                          Upload Answer
+                          {isInterviewStarted ? "Upload Answer" : "Start Interview First"}
                         </>
                       )}
                     </Button>
@@ -557,106 +642,142 @@ export default function InterviewPage({ params: paramsPromise }: { params: Promi
       ) : (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Interview Analysis</h1>
-            <Button variant="ghost" onClick={() => window.history.back()}>
+            <h1 className="text-2xl font-bold">
+              {isAnalysisLoading ? "Analyzing Interview..." : "Interview Analysis"}
+            </h1>
+            <Button 
+              variant="ghost" 
+              onClick={() => window.history.back()}
+              disabled={isAnalysisLoading}
+            >
               <ChevronLeft className="mr-2 h-4 w-4" />
               Back to Interviews
             </Button>
           </div>
 
-          {analysisData && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Overall Performance</CardTitle>
-                <CardDescription>Analysis of your interview responses</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-medium">Overall Score</h3>
-                      <span className="text-sm font-medium">{analysisData.overall_score}%</span>
-                    </div>
-                    <Progress value={analysisData.overall_score} className="h-2" />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
+          {isAnalysisLoading ? (
+            <AnalysisSkeletonLoader />
+          ) : (
+            analysisData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Overall Performance</CardTitle>
+                  <CardDescription>Analysis of your interview responses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
                     <div>
-                      <h3 className="font-medium flex items-center text-green-600 mb-2">
-                        <ThumbsUp className="mr-2 h-4 w-4" />
-                        Strengths
-                      </h3>
-                      <ul className="space-y-1">
-                        {Object.entries(analysisData.strengths).map(([key, value], index) => (
-                          <li key={index} className="flex items-start">
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-600 mt-0.5" />
-                            <span className="text-sm">
-                              <strong className="capitalize">{key}:</strong> {value}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-medium">Overall Score</h3>
+                        <span className="text-sm font-medium">{analysisData.overall_score}%</span>
+                      </div>
+                      <Progress value={analysisData.overall_score} className="h-2" />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <h3 className="font-medium flex items-center text-green-600 mb-2">
+                          <ThumbsUp className="mr-2 h-4 w-4" />
+                          Strengths
+                        </h3>
+                        <ul className="space-y-1">
+                          {Object.entries(analysisData.strengths).map(([key, value], index) => (
+                            <li key={index} className="flex items-start">
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-green-600 mt-0.5" />
+                              <span className="text-sm">
+                                <strong className="capitalize">{key}:</strong> {value}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h3 className="font-medium flex items-center text-amber-600 mb-2">
+                          <ThumbsDown className="mr-2 h-4 w-4" />
+                          Areas for Improvement
+                        </h3>
+                        <ul className="space-y-1">
+                          {Object.entries(analysisData.weaknesses).map(([key, value], index) => (
+                            <li key={index} className="flex items-start">
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-amber-600 mt-0.5" />
+                              <span className="text-sm">
+                                <strong className="capitalize">{key}:</strong> {value}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
 
                     <div>
-                      <h3 className="font-medium flex items-center text-amber-600 mb-2">
-                        <ThumbsDown className="mr-2 h-4 w-4" />
-                        Areas for Improvement
-                      </h3>
-                      <ul className="space-y-1">
-                        {Object.entries(analysisData.weaknesses).map(([key, value], index) => (
-                          <li key={index} className="flex items-start">
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-amber-600 mt-0.5" />
-                            <span className="text-sm">
-                              <strong className="capitalize">{key}:</strong> {value}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                      <h3 className="font-medium mb-4">Question-wise Analysis</h3>
+                      <div className="space-y-4">
+                        {Object.entries(analysisData.analysis_data).map(([questionNum, data]) => (
+                          <Card key={questionNum}>
+                            <CardHeader>
+                              <CardTitle className="text-base">Question {questionNum}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                  <div>
+                                    <h4 className="text-sm font-medium mb-1">Score</h4>
+                                    <Progress value={data.score} className="h-2" />
+                                    <span className="text-sm text-muted-foreground">{data.score}%</span>
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-medium mb-1">Question Alignment</h4>
+                                    <Progress value={data.question_alignment_score} className="h-2" />
+                                    <span className="text-sm text-muted-foreground">{data.question_alignment_score}%</span>
+                                  </div>
+                                </div>
 
-                  <div>
-                    <h3 className="font-medium mb-4">Question-wise Analysis</h3>
-                    <div className="space-y-4">
-                      {Object.entries(analysisData.analysis_data).map(([questionNum, data]) => (
-                        <Card key={questionNum}>
-                          <CardHeader>
-                            <CardTitle className="text-base">Question {questionNum}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                  <h4 className="text-sm font-medium mb-1">Clarity</h4>
-                                  <Progress value={data.clarity} className="h-2" />
-                                  <span className="text-sm text-muted-foreground">{data.clarity}%</span>
-                                </div>
-                                <div>
-                                  <h4 className="text-sm font-medium mb-1">Confidence</h4>
-                                  <Progress value={data.confidence} className="h-2" />
-                                  <span className="text-sm text-muted-foreground">{data.confidence}%</span>
-                                </div>
-                                <div>
-                                  <h4 className="text-sm font-medium mb-1">Technical Accuracy</h4>
-                                  <Progress value={data.technical_accuracy} className="h-2" />
-                                  <span className="text-sm text-muted-foreground">{data.technical_accuracy}%</span>
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="text-sm font-medium mb-2">Strengths</h4>
+                                    <ul className="space-y-1">
+                                      {data.strengths.map((strength, idx) => (
+                                        <li key={idx} className="flex items-start">
+                                          <CheckCircle2 className="mr-2 h-4 w-4 text-green-600 mt-0.5" />
+                                          <span className="text-sm">{strength}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+                                  <div>
+                                    <h4 className="text-sm font-medium mb-2">Areas for Improvement</h4>
+                                    <ul className="space-y-1">
+                                      {data.areas_for_improvement.map((area, idx) => (
+                                        <li key={idx} className="flex items-start">
+                                          <CheckCircle2 className="mr-2 h-4 w-4 text-amber-600 mt-0.5" />
+                                          <span className="text-sm">{area}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+                                  <div className="bg-muted p-3 rounded-md">
+                                    <h4 className="text-sm font-medium mb-1">Question Analysis</h4>
+                                    <p className="text-sm">{data.question_analysis}</p>
+                                  </div>
+
+                                  <div className="bg-muted p-3 rounded-md">
+                                    <h4 className="text-sm font-medium mb-1">Relevance to Question</h4>
+                                    <p className="text-sm">{data.relevance_to_question}</p>
+                                  </div>
                                 </div>
                               </div>
-
-                              <div className="bg-muted p-3 rounded-md">
-                                <h4 className="text-sm font-medium mb-1">Improvement Suggestion</h4>
-                                <p className="text-sm">{data.improvement}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )
           )}
         </div>
       )}
