@@ -33,28 +33,27 @@ export interface InterviewTemplate {
 }
 
 export const INTERVIEW_TYPES = [
-  "Technical",
   "Behavioral",
-  "System Design",
-  "Problem Solving",
-  "Cultural Fit"
+  "Technical",
+  "Competency-based",
+  "Case Study",
+  "Panel"
 ]
 
 export const QUESTION_CATEGORIES = [
   "Technical",
+  "Problem-solving",
   "Situational",
-  "Behavioral",
-  "Problem Solving",
-  "System Design"
+  "Leadership",
+  "Cultural fit"
 ]
 
 export const FEEDBACK_AREAS = [
   "Clarity",
-  "Technical accuracy",
-  "Communication",
-  "Problem-solving approach",
-  "Code quality",
-  "System design principles"
+  "Accuracy",
+  "Body language",
+  "Structure",
+  "Confidence"
 ]
 
 export const INTERVIEWER_PERSONAS = [
@@ -74,9 +73,8 @@ export const ACCENT_OPTIONS = [
 ]
 
 export const COMPLEXITY_LEVELS = [
+  "beginner",
   "basic",
-  "intermediate",
-  "advanced",
   "expert"
 ]
 
